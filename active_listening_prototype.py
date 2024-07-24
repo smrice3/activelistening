@@ -57,6 +57,7 @@ if selected_industry:
         st.session_state.current_step = 0
 
 st.write(scenario)
+st.write(st.session_state.scenario)
 
 if 'scenario' in st.session_state:
     current_step = st.session_state.current_step
