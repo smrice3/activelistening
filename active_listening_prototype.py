@@ -38,7 +38,7 @@ def generate_scenario(industry):
             {"role": "user", "content": prompt}
         ]
     )
-    scenario = completion.choices[0].message.content
+    scenario = response.choices[0].message.content
     return scenario
 
 # Streamlit app layout
