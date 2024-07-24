@@ -43,7 +43,6 @@ def generate_scenario(industry):
 
 # Streamlit app layout
 st.title("Active Listening Practice App")
-st.write(scenario)
 
 # Industry selection dropdown
 industries = ["Finance", "Healthcare", "Technology", "Education", "Consulting"]
@@ -56,6 +55,8 @@ if selected_industry:
         scenario = generate_scenario(selected_industry)
         st.session_state.scenario = scenario.split("\n\n")  # Split the scenario into parts for each dialogue
         st.session_state.current_step = 0
+
+st.write(scenario)
 
 if 'scenario' in st.session_state:
     current_step = st.session_state.current_step
