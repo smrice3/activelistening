@@ -3,8 +3,14 @@ from openai import OpenAI
 from pathlib import Path
 import os
 
+# Load API key from environment variable
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    st.error("OpenAI API key not found. Please set the OPENAI_API_KEY environment variable.")
+    st.stop()
+
 # Initialize OpenAI client
-openai.api_key = os.getenv('OPENAI_API_KEY')
+client = OpenAI(api_key=api_key)
 
 # Function to generate audio from text
 def generate_audio(text, voice):
