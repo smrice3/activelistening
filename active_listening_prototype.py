@@ -1,4 +1,3 @@
-
 import streamlit as st
 from openai import OpenAI
 from pathlib import Path
@@ -37,6 +36,7 @@ def generate_conversation(context):
     conversation = response.choices[0].message.content
     return conversation
 
+# Function to generate audio from text
 def generate_audio(text, voice):
     speech_file_path = Path(__file__).parent / f"{voice}_speech.mp3"
     response = client.audio.speech.create(
@@ -47,27 +47,11 @@ def generate_audio(text, voice):
     response.stream_to_file(speech_file_path)
     return speech_file_path
 
+# Function to provide feedback
 def provide_feedback(response):
     # Placeholder for detailed feedback logic
     feedback = f"Feedback based on your response: {response}"
     return feedback
-
-# Streamlit app layout
-st.title("Active Listening Practice App")
-
-# Industry selection dropdown
-industries = ["Finance", "Healthcare", "Technology", "Education", "Consulting"]
-selected_industry = st.selectbox("Select your industry:", industries)
-
-if selected_industry:
-    st.write(f"You have selected: {selected_industry} industry")
-
-    if st.button("Generate Scenario"):
-        scenario = generate_scenario(selected_industry)
-        conversation = generate_conversation(scenario)
-        st.session_state.scenario = scenario
-        st.session_state.conversation = conversation.split("\n\n")
-        st.session_state.current_step = 0
 
 if 'scenario' in st.session_state:
     st.header("Scenario Background")
