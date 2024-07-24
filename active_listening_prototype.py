@@ -43,6 +43,7 @@ def generate_scenario(industry):
 
 # Streamlit app layout
 st.title("Active Listening Practice App")
+st.write(scenario)
 
 # Industry selection dropdown
 industries = ["Finance", "Healthcare", "Technology", "Education", "Consulting"]
