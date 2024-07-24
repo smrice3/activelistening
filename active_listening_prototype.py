@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Function to generate audio from text
 def generate_audio(text, voice):
