@@ -29,7 +29,7 @@ def create_scenario(industry: str):
     content = response.choices[0].message.content
 
     # Debug: Print the content to check the response
-    st.print("API Response Content:", content)
+    st.write("API Response Content:", content)
 
     # Directly parse JSON from the content
     scenario = json.loads(content)
