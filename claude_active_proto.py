@@ -3,12 +3,15 @@ from openai import OpenAI
 from pathlib import Path
 import time
 import json
+import re
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # List of white-collar industries
 INDUSTRIES = ["Finance", "Technology", "Healthcare", "Marketing", "Law"]
+
+import re
 
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
@@ -20,12 +23,39 @@ def create_scenario(industry: str):
     response = client.chat.completions.create(
         model="gpt-4-turbo-preview",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios."},
+            {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios. Always respond in valid JSON format."},
             {"role": "user", "content": prompt}
         ]
     )
     
-    return json.loads(response.choices[0].message.content)
+    content = response.choices[0].message.content
+    
+    # Try to extract JSON from the content
+    json_match = re.search(r'\{.*\}', content, re.DOTALL)
+    if json_match:
+        try:
+            return json.loads(json_match.group())
+        except json.JSONDecodeError:
+            pass
+    
+    # If JSON parsing fails, extract information manually
+    scenario = {}
+    patterns = {
+        'company_name': r'company_name"?\s*:\s*"?([^",\}]+)',
+        'company_function': r'company_function"?\s*:\s*"?([^",\}]+)',
+        'person_name': r'person_name"?\s*:\s*"?([^",\}]+)',
+        'person_role': r'person_role"?\s*:\s*"?([^",\}]+)',
+        'discussion_reason': r'discussion_reason"?\s*:\s*"?([^",\}]+)'
+    }
+    
+    for key, pattern in patterns.items():
+        match = re.search(pattern, content)
+        if match:
+            scenario[key] = match.group(1).strip()
+        else:
+            scenario[key] = f"[{key.replace('_', ' ').title()}]"
+    
+    return scenario
 
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
