@@ -36,12 +36,11 @@ def create_scenario(industry: str):
             {"role": "user", "content": prompt}
         ]
     )
-    content = response.choices[0].message
+    content = response['choices'][0]['message']['content']
     
     # Directly parse JSON from the content
     scenario = json.loads(content)
     return scenario
-
 
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
