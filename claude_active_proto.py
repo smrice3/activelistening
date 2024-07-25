@@ -29,20 +29,20 @@ def create_scenario(industry: str):
     3. The reason for the discussion
     Format the response as JSON with keys: company_name, company_function, person_name, person_role, discussion_reason"""
     
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios. Always respond in valid JSON format."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-        content = response.choices[0].message['content']
-        
-        # Directly parse JSON from the content
-        scenario = json.loads(content)
-        return scenario
+    response = client.chat.completions.create(
+        model="gpt-4-turbo-preview",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios. Always respond in valid JSON format."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    content = response.choices[0].message['content']
     
+    # Directly parse JSON from the content
+    scenario = json.loads(content)
+    return scenario
+
+
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
         name=f"{scenario['person_name']} - {scenario['person_role']}",
