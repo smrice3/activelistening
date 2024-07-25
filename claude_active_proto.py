@@ -25,40 +25,39 @@ def create_scenario(industry: str):
     3. The reason for the discussion
     Format the response as JSON with keys: company_name, company_function, person_name, person_role, discussion_reason"""
     
-    response = client.chat.completions.create(
-        model="gpt-4-turbo-preview",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios. Always respond in valid JSON format."},
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    content = response.choices[0].message.content
-    
-    # Try to extract JSON from the content
-    json_match = re.search(r'\{.*\}', content, re.DOTALL)
-    if json_match:
-        try:
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios. Always respond in valid JSON format."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        content = response.choices[0].message['content']
+        
+        # Try to extract JSON from the content
+        json_match = re.search(r'\{.*\}', content, re.DOTALL)
+        if json_match:
             return json.loads(json_match.group())
-        except json.JSONDecodeError:
-            pass
+        else:
+            st.error("Failed to find JSON in the response.")
+    
+    except (openai.error.OpenAIError, json.JSONDecodeError) as e:
+        st.error(f"Error creating scenario: {e}")
     
     # If JSON parsing fails, extract information manually
     scenario = {}
     patterns = {
-        'company_name': r'company_name"?\s*:\s*"?([^",\}]+)',
-        'company_function': r'company_function"?\s*:\s*"?([^",\}]+)',
-        'person_name': r'person_name"?\s*:\s*"?([^",\}]+)',
-        'person_role': r'person_role"?\s*:\s*"?([^",\}]+)',
-        'discussion_reason': r'discussion_reason"?\s*:\s*"?([^",\}]+)'
+        'company_name': r'\"company_name\"?\s*:\s*\"([^\"]+)\"',
+        'company_function': r'\"company_function\"?\s*:\s*\"([^\"]+)\"',
+        'person_name': r'\"person_name\"?\s*:\s*\"([^\"]+)\"',
+        'person_role': r'\"person_role\"?\s*:\s*\"([^\"]+)\"',
+        'discussion_reason': r'\"discussion_reason\"?\s*:\s*\"([^\"]+)\"'
     }
     
     for key, pattern in patterns.items():
         match = re.search(pattern, content)
-        if match:
-            scenario[key] = match.group(1).strip()
-        else:
-            scenario[key] = f"[{key.replace('_', ' ').title()}]"
+        scenario[key] = match.group(1).strip() if match else f"[{key.replace('_', ' ').title()}]"
     
     return scenario
 
