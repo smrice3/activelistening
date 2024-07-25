@@ -122,14 +122,13 @@ if __name__ == "__main__":
     st.title("Active Listening Prototype")
 
     # Industry selection
-    if 'industry' not in st.session_state:
-        st.session_state.industry = st.selectbox("Select an industry:", INDUSTRIES)
+    industry = st.selectbox("Select an industry:", INDUSTRIES)
 
     # Create scenario button
     if 'scenario' not in st.session_state and st.button("Create Scenario"):
-        st.session_state.scenario = create_scenario(st.session_state.industry)
+        st.session_state.scenario = create_scenario(industry)
         st.session_state.formatted_scenario = format_scenario(st.session_state.scenario)
-        st.session_state.assistant = create_assistant(st.session_state.industry, st.session_state.scenario)
+        st.session_state.assistant = create_assistant(industry, st.session_state.scenario)
         st.session_state.thread = create_thread()
         st.success("Scenario created and assistant ready!")
         st.rerun()
