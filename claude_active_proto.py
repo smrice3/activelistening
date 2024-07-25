@@ -5,6 +5,7 @@ import json
 import time
 from pathlib import Path
 import os
+import random
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
@@ -17,11 +18,13 @@ def cleanup_audio_files():
             os.remove(file)
 
 def create_scenario(industry: str):
+    random_factor = random.randint(0, 1000)  # Add a random factor to the prompt
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
     1. The name and function of the company
     2. The name and role of the person the user will be talking to
     3. The reason for the discussion
-    Format the response as a JSON object with the following keys: company_name, company_function, person_name, person_role, discussion_reason"""
+    Format the response as a JSON object with the following keys: company_name, company_function, person_name, person_role, discussion_reason
+    Add a random element to make each scenario unique: {random_factor}"""
     
     response = client.chat.completions.create(
         model="gpt-4-turbo-preview",
@@ -33,13 +36,30 @@ def create_scenario(industry: str):
     )
     
     content = response.choices[0].message.content
-
-    # Debug: Print the content to check the response
-    st.write("API Response Content:", content)
-
-    # Directly parse JSON from the content
     scenario = json.loads(content)
+
     return scenario
+
+def format_scenario(scenario):
+    prompt = f"""Here is some information about a workplace scenario:
+    Company Name: {scenario['company_name']}
+    Company Function: {scenario['company_function']}
+    Person Name: {scenario['person_name']}
+    Person Role: {scenario['person_role']}
+    Discussion Reason: {scenario['discussion_reason']}
+    
+    Please format this information into a coherent paragraph for a meeting setup."""
+    
+    response = client.chat.completions.create(
+        model="gpt-4-turbo-preview",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that formats information into coherent paragraphs."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    
+    formatted_content = response.choices[0].message.content.strip()
+    return formatted_content
 
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
@@ -108,16 +128,15 @@ if __name__ == "__main__":
     # Create scenario button
     if 'scenario' not in st.session_state and st.button("Create Scenario"):
         st.session_state.scenario = create_scenario(st.session_state.industry)
+        st.session_state.formatted_scenario = format_scenario(st.session_state.scenario)
         st.session_state.assistant = create_assistant(st.session_state.industry, st.session_state.scenario)
         st.session_state.thread = create_thread()
         st.success("Scenario created and assistant ready!")
         st.rerun()
 
-    if 'scenario' in st.session_state:
-        scenario = st.session_state.scenario
-        st.write(f"""You work for {scenario['company_name']}, {scenario['company_function']}. 
-        You are in a meeting with {scenario['person_name']}, {scenario['person_role']}, 
-        to discuss {scenario['discussion_reason']}.""")
+    if 'formatted_scenario' in st.session_state:
+        formatted_scenario = st.session_state.formatted_scenario
+        st.write(formatted_scenario)
 
         if 'conversation_started' not in st.session_state:
             st.session_state.conversation_started = True
@@ -134,7 +153,7 @@ if __name__ == "__main__":
             # Generate and play audio for the first dialogue
             audio_file_path = text_to_speech(response)
             st.audio(audio_file_path)
-            st.write(f"{scenario['person_name']}: {response}")
+            st.write(f"{st.session_state.scenario['person_name']}: {response}")
 
             # HURIER questions after the first dialogue
             st.write("Please answer the following questions based on the dialogue:")
@@ -164,7 +183,7 @@ if __name__ == "__main__":
                 
                 audio_file_path = text_to_speech(response)
                 st.audio(audio_file_path)
-                st.write(f"{scenario['person_name']}: {response}")
+                st.write(f"{st.session_state.scenario['person_name']}: {response}")
 
                 # HURIER questions after each dialogue
                 st.write("Please answer the following questions based on the dialogue:")
@@ -180,4 +199,4 @@ if __name__ == "__main__":
                 if message.role == "user":
                     st.write(f"You: {message.content[0].text.value}")
                 else:
-                    st.write(f"{scenario['person_name']}: {message.content[0].text.value}")
+                    st.write(f"{st.session_state.scenario['person_name']}: {message.content[0].text.value}")
