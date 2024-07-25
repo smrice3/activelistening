@@ -36,8 +36,11 @@ def create_scenario(industry: str):
             {"role": "user", "content": prompt}
         ]
     )
-    content = str(response.choices[0].message.content)
-    
+    content = response.choices[0].message.content
+
+    # Debug: Print the content to check the response
+    print("API Response Content:", content)
+
     # Directly parse JSON from the content
     scenario = json.loads(content)
     return scenario
