@@ -1,16 +1,9 @@
+import openai
 from openai import OpenAI
 import streamlit as st
 import json
-import re
-from pathlib import Path
-import os
 
-# Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-# List of white-collar industries
-INDUSTRIES = ["Finance", "Technology", "Healthcare", "Marketing", "Law"]
-
 
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
@@ -37,68 +30,8 @@ def create_scenario(industry: str):
     scenario = json.loads(content)
     return scenario
 
-
-
-def create_thread():
-    try:
-        return client.beta.threads.create()
-    except openai.error.OpenAIError as e:
-        st.error(f"Error creating thread: {e}")
-
-def add_message_to_thread(thread_id, role, content):
-    try:
-        return client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role=role,
-            content=content
-        )
-    except openai.error.OpenAIError as e:
-        st.error(f"Error adding message to thread: {e}")
-
-def run_assistant(thread_id, assistant_id):
-    try:
-        run = client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=assistant_id
-        )
-        while run.status not in ["completed", "failed"]:
-            time.sleep(1)
-            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-        return run
-    except openai.error.OpenAIError as e:
-        st.error(f"Error running assistant: {e}")
-
-def get_messages(thread_id):
-    try:
-        return client.beta.threads.messages.list(thread_id=thread_id)
-    except openai.error.OpenAIError as e:
-        st.error(f"Error retrieving messages: {e}")
-
-def text_to_speech(text: str) -> str:
-    try:
-        speech_file_path = Path(__file__).parent / f"speech_{int(time.time())}.mp3"
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
-            input=text
-        )
-        response.stream_to_file(speech_file_path)
-        return str(speech_file_path)
-    except openai.error.OpenAIError as e:
-        st.error(f"Error converting text to speech: {e}")
-
-def ask_hurier_question(stage: str) -> str:
-    questions = {
-        "Hearing": "What was the main point of the message?",
-        "Understanding": "Can you summarize the key ideas presented?",
-        "Remembering": "What specific details do you recall from the conversation?",
-        "Interpreting": "How would you interpret the speaker's tone and intent?",
-        "Evaluating": "What is your assessment of the information provided?",
-        "Responding": "How would you respond to this message?"
-    }
-    return questions.get(stage, "Invalid stage")
-
-def main():
+# Main Streamlit app
+if __name__ == "__main__":
     cleanup_audio_files()
     st.title("Active Listening Prototype")
 
@@ -154,4 +87,31 @@ def main():
         else:
             user_input = st.text_input("Your response:")
             if st.button("Send"):
-                add
+                add_message_to_thread(st.session_state.thread.id, "user", user_input)
+                run = run_assistant(st.session_state.thread.id, st.session_state.assistant.id)
+                
+                messages = get_messages(st.session_state.thread.id)
+                for message in reversed(list(messages)):
+                    if message.role == "assistant":
+                        response = message.content[0].text.value
+                        break
+                
+                audio_file_path = text_to_speech(response)
+                st.audio(audio_file_path)
+                st.write(f"{scenario['person_name']}: {response}")
+
+                # HURIER questions after each dialogue
+                st.write("Please answer the following questions based on the dialogue:")
+                for stage in ["Hearing", "Understanding", "Remembering", "Interpreting", "Evaluating", "Responding"]:
+                    question = ask_hurier_question(stage)
+                    st.text_input(f"{stage} question: {question}")
+
+                st.session_state.waiting_for_hurier = True
+
+        if st.button("View Conversation History"):
+            messages = get_messages(st.session_state.thread.id)
+            for message in reversed(list(messages)):
+                if message.role == "user":
+                    st.write(f"You: {message.content[0].text.value}")
+                else:
+                    st.write(f"{scenario['person_name']}: {message.content[0].text.value}")
