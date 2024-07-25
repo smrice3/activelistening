@@ -1,6 +1,5 @@
-import streamlit as st
 from openai import OpenAI
-import time
+import streamlit as st
 import json
 import re
 from pathlib import Path
@@ -17,6 +16,10 @@ def cleanup_audio_files():
     for file in current_dir.glob("speech_*.mp3"):
         if time.time() - file.stat().st_mtime > 300:  # Delete files older than 5 minutes
             os.remove(file)
+
+
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
