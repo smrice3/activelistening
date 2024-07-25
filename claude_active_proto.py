@@ -2,8 +2,19 @@ import openai
 from openai import OpenAI
 import streamlit as st
 import json
+import time
+from pathlib import Path
+import os
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+INDUSTRIES = ["Finance", "Technology", "Healthcare", "Marketing", "Law"]
+
+def cleanup_audio_files():
+    current_dir = Path(__file__).parent
+    for file in current_dir.glob("speech_*.mp3"):
+        if time.time() - file.stat().st_mtime > 300:  # Delete files older than 5 minutes
+            os.remove(file)
 
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
@@ -29,6 +40,61 @@ def create_scenario(industry: str):
     # Directly parse JSON from the content
     scenario = json.loads(content)
     return scenario
+
+def create_assistant(industry: str, scenario: dict):
+    assistant = client.beta.assistants.create(
+        name=f"{scenario['person_name']} - {scenario['person_role']}",
+        instructions=f"""You are {scenario['person_name']}, the {scenario['person_role']} at {scenario['company_name']}. 
+        You're in a meeting to discuss {scenario['discussion_reason']}. 
+        Engage in a realistic conversation as this character, maintaining their perspective and role.""",
+        model="gpt-4-turbo-preview",
+        tools=[{"type": "code_interpreter"}]
+    )
+    return assistant
+
+def create_thread():
+    return client.beta.threads.create()
+
+def add_message_to_thread(thread_id, role, content):
+    return client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role=role,
+        content=content
+    )
+
+def run_assistant(thread_id, assistant_id):
+    run = client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=assistant_id
+    )
+    while run.status not in ["completed", "failed"]:
+        time.sleep(1)
+        run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+    return run
+
+def get_messages(thread_id):
+    return client.beta.threads.messages.list(thread_id=thread_id)
+
+def text_to_speech(text: str) -> str:
+    speech_file_path = Path(__file__).parent / f"speech_{int(time.time())}.mp3"
+    response = client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text
+    )
+    response.stream_to_file(speech_file_path)
+    return str(speech_file_path)
+
+def ask_hurier_question(stage: str) -> str:
+    questions = {
+        "Hearing": "What was the main point of the message?",
+        "Understanding": "Can you summarize the key ideas presented?",
+        "Remembering": "What specific details do you recall from the conversation?",
+        "Interpreting": "How would you interpret the speaker's tone and intent?",
+        "Evaluating": "What is your assessment of the information provided?",
+        "Responding": "How would you respond to this message?"
+    }
+    return questions.get(stage, "Invalid stage")
 
 # Main Streamlit app
 if __name__ == "__main__":
