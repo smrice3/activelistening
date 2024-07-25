@@ -1,6 +1,5 @@
 import streamlit as st
 from openai import OpenAI
-from pathlib import Path
 import time
 import json
 import re
@@ -10,8 +9,6 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # List of white-collar industries
 INDUSTRIES = ["Finance", "Technology", "Healthcare", "Marketing", "Law"]
-
-import re
 
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
@@ -139,8 +136,9 @@ def main():
                     response = message.content[0].text.value
                     break
             
-audio_data = text_to_speech(response)
-st.audio(audio_data, format="audio/mp3")
+            audio_data = text_to_speech(response)
+            st.audio(audio_data, format="audio/mp3")
+            st.write(f"{scenario['person_name']}: {response}")
 
             for stage in ["Hearing", "Understanding", "Remembering", "Interpreting", "Evaluating", "Responding"]:
                 question = ask_hurier_question(stage)
