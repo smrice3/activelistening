@@ -45,24 +45,22 @@ def create_scenario(industry: str):
         else:
             st.error("Failed to find JSON in the response.")
     
-    except (openai.error.OpenAIError, json.JSONDecodeError) as e:
-        st.error(f"Error creating scenario: {e}")
-    
+    except openai.APIError as e:
+        st.error(f"OpenAI API returned an API Error: {e}")
+    except openai.APIConnectionError as e:
+        st.error(f"Failed to connect to OpenAI API: {e}")
+    except openai.RateLimitError as e:
+        st.error(f"OpenAI API request exceeded rate limit: {e}")
+    except json.JSONDecodeError as e:
+        st.error(f"Error decoding JSON: {e}")
+
     # If JSON parsing fails, extract information manually
     scenario = {}
     patterns = {
         'company_name': r'\"company_name\"?\s*:\s*\"([^\"]+)\"',
         'company_function': r'\"company_function\"?\s*:\s*\"([^\"]+)\"',
         'person_name': r'\"person_name\"?\s*:\s*\"([^\"]+)\"',
-        'person_role': r'\"person_role\"?\s*:\s*\"([^\"]+)\"',
-        'discussion_reason': r'\"discussion_reason\"?\s*:\s*\"([^\"]+)\"'
-    }
-    
-    for key, pattern in patterns.items():
-        match = re.search(pattern, content)
-        scenario[key] = match.group(1).strip() if match else f"[{key.replace('_', ' ').title()}]"
-    
-    return scenario
+        'person
 
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
