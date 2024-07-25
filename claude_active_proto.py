@@ -21,6 +21,7 @@ def cleanup_audio_files():
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
+
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
     1. The name and function of the company
@@ -60,8 +61,16 @@ def create_scenario(industry: str):
         'company_name': r'\"company_name\"?\s*:\s*\"([^\"]+)\"',
         'company_function': r'\"company_function\"?\s*:\s*\"([^\"]+)\"',
         'person_name': r'\"person_name\"?\s*:\s*\"([^\"]+)\"',
-        'person
-
+        'person_role': r'\"person_role\"?\s*:\s*\"([^\"]+)\"',
+        'discussion_reason': r'\"discussion_reason\"?\s*:\s*\"([^\"]+)\"'
+    }
+    
+    for key, pattern in patterns.items():
+        match = re.search(pattern, content)
+        scenario[key] = match.group(1).strip() if match else f"[{key.replace('_', ' ').title()}]"
+    
+    return scenario
+    
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
         name=f"{scenario['person_name']} - {scenario['person_role']}",
