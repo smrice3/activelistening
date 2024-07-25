@@ -34,3 +34,5 @@ def create_scenario(industry: str):
     # Directly parse JSON from the content
     scenario = json.loads(content)
     return scenario
+
+create.scenario("Finance")
