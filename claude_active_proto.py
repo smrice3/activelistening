@@ -2,6 +2,7 @@ import streamlit as st
 from openai import OpenAI
 from pathlib import Path
 import time
+import json
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -9,10 +10,29 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 # List of white-collar industries
 INDUSTRIES = ["Finance", "Technology", "Healthcare", "Marketing", "Law"]
 
-def create_assistant(industry: str):
+def create_scenario(industry: str):
+    prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
+    1. The name and function of the company
+    2. The name and role of the person the user will be talking to
+    3. The reason for the discussion
+    Format the response as JSON with keys: company_name, company_function, person_name, person_role, discussion_reason"""
+    
+    response = client.chat.completions.create(
+        model="gpt-4-turbo-preview",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that generates workplace scenarios."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+    
+    return json.loads(response.choices[0].message.content)
+
+def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
-        name=f"{industry} Workplace Assistant",
-        instructions=f"You are a helpful assistant in the {industry} industry. You engage in workplace scenarios and respond accordingly.",
+        name=f"{scenario['person_name']} - {scenario['person_role']}",
+        instructions=f"""You are {scenario['person_name']}, the {scenario['person_role']} at {scenario['company_name']}. 
+        You're in a meeting to discuss {scenario['discussion_reason']}. 
+        Engage in a realistic conversation as this character, maintaining their perspective and role.""",
         model="gpt-4-turbo-preview",
         tools=[{"type": "code_interpreter"}]
     )
@@ -72,15 +92,40 @@ def ask_hurier_question(stage: str) -> str:
 def main():
     st.title("Active Listening Prototype")
 
-    if 'assistant' not in st.session_state:
+    if 'scenario' not in st.session_state:
         industry = st.selectbox("Select an industry:", INDUSTRIES)
-        if st.button("Create Assistant"):
-            st.session_state.assistant = create_assistant(industry)
+        if st.button("Create Scenario"):
+            st.session_state.scenario = create_scenario(industry)
+            st.session_state.assistant = create_assistant(industry, st.session_state.scenario)
             st.session_state.thread = create_thread()
-            st.success("Assistant created and conversation started!")
+            st.success("Scenario created and assistant ready!")
 
-    if 'assistant' in st.session_state:
-        user_input = st.text_input("Your message:")
+    if 'scenario' in st.session_state:
+        scenario = st.session_state.scenario
+        st.write(f"""You work for {scenario['company_name']}, {scenario['company_function']}. 
+        You are in a meeting with {scenario['person_name']}, {scenario['person_role']}, 
+        to discuss {scenario['discussion_reason']}.""")
+
+        if 'conversation_started' not in st.session_state:
+            st.session_state.conversation_started = True
+            add_message_to_thread(st.session_state.thread.id, "user", "Hello, let's start our meeting.")
+            run = run_assistant(st.session_state.thread.id, st.session_state.assistant.id)
+            
+            messages = get_messages(st.session_state.thread.id)
+            for message in reversed(list(messages)):
+                if message.role == "assistant":
+                    response = message.content[0].text.value
+                    break
+            
+            audio_data = text_to_speech(response)
+            st.audio(audio_data, format="audio/mp3")
+            st.write(f"{scenario['person_name']}: {response}")
+
+            for stage in ["Hearing", "Understanding", "Remembering", "Interpreting", "Evaluating", "Responding"]:
+                question = ask_hurier_question(stage)
+                st.text_input(f"{stage} question: {question}")
+
+        user_input = st.text_input("Your response:")
         if st.button("Send"):
             add_message_to_thread(st.session_state.thread.id, "user", user_input)
             run = run_assistant(st.session_state.thread.id, st.session_state.assistant.id)
@@ -93,15 +138,19 @@ def main():
             
             audio_data = text_to_speech(response)
             st.audio(audio_data, format="audio/mp3")
-
-            with st.expander("Conversation"):
-                for message in reversed(list(messages)):
-                    st.write(f"{message.role.capitalize()}: {message.content[0].text.value}")
+            st.write(f"{scenario['person_name']}: {response}")
 
             for stage in ["Hearing", "Understanding", "Remembering", "Interpreting", "Evaluating", "Responding"]:
                 question = ask_hurier_question(stage)
-                st.write(f"{stage} question: {question}")
-                st.text_input(f"Your answer for {stage}:")
+                st.text_input(f"{stage} question: {question}")
+
+        if st.button("View Conversation History"):
+            messages = get_messages(st.session_state.thread.id)
+            for message in reversed(list(messages)):
+                if message.role == "user":
+                    st.write(f"You: {message.content[0].text.value}")
+                else:
+                    st.write(f"{scenario['person_name']}: {message.content[0].text.value}")
 
 if __name__ == "__main__":
     main()
