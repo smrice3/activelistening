@@ -35,4 +35,4 @@ def create_scenario(industry: str):
     scenario = json.loads(content)
     return scenario
 
-create.scenario(Finance)
+create_scenario('Finance')
