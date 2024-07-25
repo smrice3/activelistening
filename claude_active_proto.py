@@ -3,12 +3,20 @@ from openai import OpenAI
 import time
 import json
 import re
+from pathlib import Path
+import os
 
 # Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # List of white-collar industries
 INDUSTRIES = ["Finance", "Technology", "Healthcare", "Marketing", "Law"]
+
+def cleanup_audio_files():
+    current_dir = Path(__file__).parent
+    for file in current_dir.glob("speech_*.mp3"):
+        if time.time() - file.stat().st_mtime > 300:  # Delete files older than 5 minutes
+            os.remove(file)
 
 def create_scenario(industry: str):
     prompt = f"""Create a detailed workplace scenario in the {industry} industry. Include:
@@ -88,14 +96,15 @@ def run_assistant(thread_id, assistant_id):
 def get_messages(thread_id):
     return client.beta.threads.messages.list(thread_id=thread_id)
 
-def text_to_speech(text: str) -> bytes:
+def text_to_speech(text: str) -> str:
+    speech_file_path = Path(__file__).parent / f"speech_{int(time.time())}.mp3"
     response = client.audio.speech.create(
         model="tts-1",
         voice="alloy",
         input=text
     )
-    
-    return response.content
+    response.stream_to_file(speech_file_path)
+    return str(speech_file_path)
 
 def ask_hurier_question(stage: str) -> str:
     questions = {
@@ -108,6 +117,8 @@ def ask_hurier_question(stage: str) -> str:
     }
     return questions.get(stage, "Invalid stage")
 
+# Main Streamlit app
+cleanup_audio_files()
 st.title("Active Listening Prototype")
 
 # Industry selection
@@ -120,7 +131,7 @@ if 'scenario' not in st.session_state and st.button("Create Scenario"):
     st.session_state.assistant = create_assistant(st.session_state.industry, st.session_state.scenario)
     st.session_state.thread = create_thread()
     st.success("Scenario created and assistant ready!")
-    st.rerun()  # Changed from st.experimental_rerun()
+    st.rerun()
 
 if 'scenario' in st.session_state:
     scenario = st.session_state.scenario
@@ -141,8 +152,8 @@ if 'scenario' in st.session_state:
                 break
         
         # Generate and play audio for the first dialogue
-        audio_data = text_to_speech(response)
-        st.audio(audio_data, format="audio/mp3")
+        audio_file_path = text_to_speech(response)
+        st.audio(audio_file_path)
         st.write(f"{scenario['person_name']}: {response}")
 
         # HURIER questions after the first dialogue
@@ -153,11 +164,11 @@ if 'scenario' in st.session_state:
 
         st.session_state.waiting_for_hurier = True
 
-elif 'waiting_for_hurier' in st.session_state and st.session_state.waiting_for_hurier:
-    st.write("Please answer the HURIER questions above before continuing.")
-    if st.button("I've answered the questions"):
-        st.session_state.waiting_for_hurier = False
-        st.rerun()  # Changed from st.experimental_rerun()
+    elif 'waiting_for_hurier' in st.session_state and st.session_state.waiting_for_hurier:
+        st.write("Please answer the HURIER questions above before continuing.")
+        if st.button("I've answered the questions"):
+            st.session_state.waiting_for_hurier = False
+            st.rerun()
 
     else:
         user_input = st.text_input("Your response:")
@@ -171,8 +182,8 @@ elif 'waiting_for_hurier' in st.session_state and st.session_state.waiting_for_h
                     response = message.content[0].text.value
                     break
             
-            audio_data = text_to_speech(response)
-            st.audio(audio_data, format="audio/mp3")
+            audio_file_path = text_to_speech(response)
+            st.audio(audio_file_path)
             st.write(f"{scenario['person_name']}: {response}")
 
             # HURIER questions after each dialogue
