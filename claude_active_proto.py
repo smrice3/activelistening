@@ -98,15 +98,7 @@ def text_to_speech(text: str) -> bytes:
         input=text
     )
     
-    speech_file_path = Path("temp_speech.mp3")
-    response.stream_to_file(speech_file_path)
-    
-    with open(speech_file_path, "rb") as audio_file:
-        audio_bytes = audio_file.read()
-    
-    speech_file_path.unlink()
-    
-    return audio_bytes
+    return response.content
 
 def ask_hurier_question(stage: str) -> str:
     questions = {
@@ -147,9 +139,8 @@ def main():
                     response = message.content[0].text.value
                     break
             
-            audio_data = text_to_speech(response)
-            st.audio(audio_data, format="audio/mp3")
-            st.write(f"{scenario['person_name']}: {response}")
+audio_data = text_to_speech(response)
+st.audio(audio_data, format="audio/mp3")
 
             for stage in ["Hearing", "Understanding", "Remembering", "Interpreting", "Evaluating", "Responding"]:
                 question = ask_hurier_question(stage)
