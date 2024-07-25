@@ -43,10 +43,6 @@ def create_scenario(industry: str):
         scenario = json.loads(content)
         return scenario
     
-    except (openai.error.OpenAIError, json.JSONDecodeError) as e:
-        st.error(f"Error creating scenario: {e}")
-        return None
-    
 def create_assistant(industry: str, scenario: dict):
     assistant = client.beta.assistants.create(
         name=f"{scenario['person_name']} - {scenario['person_role']}",
