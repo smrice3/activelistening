@@ -120,7 +120,7 @@ if 'scenario' not in st.session_state and st.button("Create Scenario"):
     st.session_state.assistant = create_assistant(st.session_state.industry, st.session_state.scenario)
     st.session_state.thread = create_thread()
     st.success("Scenario created and assistant ready!")
-    st.experimental_rerun()
+    st.rerun()  # Changed from st.experimental_rerun()
 
 if 'scenario' in st.session_state:
     scenario = st.session_state.scenario
@@ -153,11 +153,11 @@ if 'scenario' in st.session_state:
 
         st.session_state.waiting_for_hurier = True
 
-    elif 'waiting_for_hurier' in st.session_state and st.session_state.waiting_for_hurier:
-        st.write("Please answer the HURIER questions above before continuing.")
-        if st.button("I've answered the questions"):
-            st.session_state.waiting_for_hurier = False
-            st.experimental_rerun()
+elif 'waiting_for_hurier' in st.session_state and st.session_state.waiting_for_hurier:
+    st.write("Please answer the HURIER questions above before continuing.")
+    if st.button("I've answered the questions"):
+        st.session_state.waiting_for_hurier = False
+        st.rerun()  # Changed from st.experimental_rerun()
 
     else:
         user_input = st.text_input("Your response:")
