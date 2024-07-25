@@ -111,7 +111,7 @@ if __name__ == "__main__":
         st.session_state.assistant = create_assistant(st.session_state.industry, st.session_state.scenario)
         st.session_state.thread = create_thread()
         st.success("Scenario created and assistant ready!")
-        st.experimental_rerun()
+        st.rerun()
 
     if 'scenario' in st.session_state:
         scenario = st.session_state.scenario
@@ -148,7 +148,7 @@ if __name__ == "__main__":
             st.write("Please answer the HURIER questions above before continuing.")
             if st.button("I've answered the questions"):
                 st.session_state.waiting_for_hurier = False
-                st.experimental_rerun()
+                st.rerun()
 
         else:
             user_input = st.text_input("Your response:")
