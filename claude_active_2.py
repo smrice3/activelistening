@@ -27,8 +27,7 @@ def create_scenario(industry):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.0,
-            response_format={"type": "json_object"},
+            response_format={ "type": "json_object" },
             messages=[
                 {"role": "system", "content": "You are a creative assistant designed to generate unique and engaging scenarios. Output your response as JSON."},
                 {"role": "user", "content": prompt}
