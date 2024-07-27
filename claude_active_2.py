@@ -60,9 +60,9 @@ def clean_up_scenario(scenario):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
-            temperature=0.7,
-            response_format={"type": "json_object"},
+            model="gpt-4o-mini",
+            temperature=0.0,
+            response_format={"type": "json_object" },
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that creates engaging scenario descriptions."},
                 {"role": "user", "content": prompt}
