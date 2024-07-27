@@ -55,14 +55,17 @@ def clean_up_scenario(scenario):
     
     Create a brief narrative that introduces the scenario in a conversational tone. 
     Then, clearly state who the user will be talking to and why.
-    Return the result as a JSON object with two keys: 'context' (the narrative) and 'person' (who they're talking to).
+    Return the result as a JSON object with three keys: 
+    1. 'context' (the narrative)
+    2. 'person' (the full name of who they're talking to)
+    3. 'role' (the role of the person they're talking to)
     """
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.0,
-            response_format={"type": "json_object" },
+            model="gpt-4",
+            temperature=0.7,
+            response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that creates engaging scenario descriptions."},
                 {"role": "user", "content": prompt}
@@ -74,23 +77,17 @@ def clean_up_scenario(scenario):
     except Exception as e:
         st.error(f"An error occurred while cleaning up the scenario: {str(e)}")
         return None
-    
+
 def conversation_engine(character, context):
-    st.write("Starting conversation engine...")
     try:
         assistant = client.beta.assistants.create(
             name="Conversation Bot",
-            instructions=f"""You are a conversational agent designed to help a person work on their listening skills. 
-            You will be playing the role of {character}, in the following context: {context}. 
-            Generate an initial statement to start the conversation, and then respond conversationally to the input from the learner. 
-            Feel free to add appropriate emotion and tone based on the responses.""",
+            instructions=f"You are a conversational agent designed to help a person work on their listening skills. You will be playing the role of {character}, in the following context: {context}. Generate an initial statement to start the conversation, and then respond conversationally to the input from the learner. Feel free to add appropriate emotion and tone based on the responses.",
             tools=[{"type": "code_interpreter"}],
-            model="gpt-4o-mini"  # Using gpt-4 as gpt-4o might not be available
+            model="gpt-4o"
         )
-        st.write("Assistant created successfully.")
 
         thread = client.beta.threads.create()
-        st.write("Thread created successfully.")
 
         run = client.beta.threads.runs.create(
             thread_id=thread.id,
@@ -98,14 +95,11 @@ def conversation_engine(character, context):
             instructions="Please provide an opening statement to start the conversation."
         )
 
-        st.write("Waiting for run to complete...")
         while run.status != 'completed':
             run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
-            time.sleep(1)  # Add a small delay to avoid excessive API calls
 
         messages = client.beta.threads.messages.list(thread_id=thread.id)
         initial_message = messages.data[0].content[0].text.value
-        st.write("Initial message retrieved successfully.")
 
         return {
             "thread_id": thread.id,
@@ -132,7 +126,6 @@ def continue_conversation(thread_id, assistant_id, user_message):
 
         while run.status != 'completed':
             run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-            time.sleep(1)  # Add a small delay to avoid excessive API calls
 
         messages = client.beta.threads.messages.list(thread_id=thread_id)
         assistant_response = messages.data[0].content[0].text.value
@@ -142,7 +135,8 @@ def continue_conversation(thread_id, assistant_id, user_message):
     except Exception as e:
         st.error(f"An error occurred while continuing the conversation: {str(e)}")
         return None
-    
+
+ 
 def analyze_response(element, user_response, assistant_message):
     prompt = f"""
     Analyze the learner's response for the '{element}' element of the HURIER model.
@@ -219,14 +213,14 @@ def main():
     if 'clean_scenario' in st.session_state:
         st.subheader("Scenario:")
         st.write(st.session_state.clean_scenario['context'])
-        st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}")
+        st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}, who is the {st.session_state.clean_scenario['role']}")
 
         if 'conversation' not in st.session_state:
             st.write("Initializing conversation...")
             with st.spinner('Please wait while the conversation is being initialized...'):
                 try:
                     st.session_state.conversation = conversation_engine(
-                        st.session_state.clean_scenario['person'], 
+                        f"{st.session_state.clean_scenario['person']}, the {st.session_state.clean_scenario['role']}", 
                         st.session_state.clean_scenario['context']
                     )
                     if not st.session_state.conversation:
