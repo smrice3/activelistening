@@ -26,8 +26,8 @@ def create_scenario(industry):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4",
-            temperature=0.8,
+            model="gpt-4o-mini",
+            temperature=0.0,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": "You are a creative assistant designed to generate unique and engaging scenarios. Output your response as JSON."},
@@ -85,7 +85,7 @@ def conversation_engine(character, context):
         Do not introduce yourself or ask how you can assist. Instead, speak as if you're already in the middle of a workplace interaction."""
 
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": "Start the conversation."}
@@ -112,7 +112,7 @@ def continue_conversation(messages, user_message):
         messages.append({"role": "user", "content": user_message})
         
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o-mini",
             messages=messages
         )
 
