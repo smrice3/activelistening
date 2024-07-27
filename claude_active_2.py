@@ -202,19 +202,24 @@ def main():
     industry = st.selectbox("Select an industry:", ["Technology", "Healthcare", "Finance", "Education", "Retail"])
 
     if st.button("Generate Scenario"):
+        st.write("Generate Scenario button clicked.")
         st.write("Generating scenario...")
         scenario = create_scenario(industry)
+        st.write(f"Scenario creation output: {scenario}")
         if scenario:
             st.write("Cleaning up scenario...")
             clean_scenario = clean_up_scenario(scenario)
+            st.write(f"Cleaned scenario output: {clean_scenario}")
             if clean_scenario:
                 st.session_state.clean_scenario = clean_scenario
                 st.session_state.conversation = None  # Reset conversation when new scenario is generated
                 st.write("Scenario generated successfully!")
             else:
                 st.error("Failed to clean up the scenario.")
+                st.write("Scenario cleaning failed.")
         else:
             st.error("Failed to create a scenario.")
+            st.write("Scenario creation failed.")
 
     if "clean_scenario" in st.session_state:
         # Extract scenario details into specific variables
@@ -234,10 +239,13 @@ def main():
                         f"{person_name}, the {person_role}", 
                         context
                     )
+                    st.write(f"Conversation initialization output: {st.session_state.conversation}")
                     if not st.session_state.conversation:
                         st.error("Failed to initialize conversation.")
+                        st.write("Conversation initialization failed.")
                 except Exception as e:
                     st.error(f"An error occurred while initializing the conversation: {str(e)}")
+                    st.write(f"Error during conversation initialization: {str(e)}")
 
         if st.session_state.conversation:
             st.subheader("Conversation:")
@@ -246,6 +254,7 @@ def main():
             user_response = st.text_input("Your response:")
 
             if st.button("Submit Response"):
+                st.write("Submit Response button clicked.")
                 st.write("Processing your response...")
                 try:
                     assistant_response = continue_conversation(
@@ -253,13 +262,16 @@ def main():
                         st.session_state.conversation["assistant_id"],
                         user_response
                     )
+                    st.write(f"Assistant response: {assistant_response}")
                     if assistant_response:
                         st.write("Character:", assistant_response)
                         listening_skill_coach(assistant_response)
                     else:
                         st.error("Failed to get a response from the character.")
+                        st.write("Failed to get assistant response.")
                 except Exception as e:
                     st.error(f"An error occurred during the conversation: {str(e)}")
+                    st.write(f"Error during conversation continuation: {str(e)}")
         else:
             st.write("Waiting for conversation to initialize...")
     else:
