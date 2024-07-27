@@ -87,7 +87,7 @@ def conversation_engine(character, context):
             This statement should relate to the scenario and invite a response from the other person.
             Do not introduce yourself or ask how you can assist. Instead, speak as if you're already in the middle of a workplace interaction.""",
             tools=[{"type": "code_interpreter"}],
-            model="gpt-4o"
+            model="gpt-4o-mini"
         )
         st.write("Assistant created successfully.")
 
