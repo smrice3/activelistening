@@ -1,10 +1,10 @@
 import streamlit as st
 from openai import OpenAI
 import json
-import random
+import time
 
-# Initialize OpenAI client
-client = OpenAI()
+# Initialize OpenAI client with API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Constants
 HURIER_ELEMENTS = ["Hear", "Understand", "Remember", "Interpret", "Evaluate", "Respond"]
@@ -27,8 +27,7 @@ def create_scenario(industry):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.8,
-            response_format={"type": "json_object"},
+            response_format={ "type": "json_object" },
             messages=[
                 {"role": "system", "content": "You are a creative assistant designed to generate unique and engaging scenarios. Output your response as JSON."},
                 {"role": "user", "content": prompt}
@@ -62,8 +61,8 @@ def clean_up_scenario(scenario):
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            temperature=0.7,
-            response_format={"type": "json_object"},
+            temperature=0.0,
+            response_format={"type": "json_object" },
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that creates engaging scenario descriptions."},
                 {"role": "user", "content": prompt}
@@ -134,6 +133,7 @@ def continue_conversation(thread_id, assistant_id, user_message):
         st.error(f"An error occurred while continuing the conversation: {str(e)}")
         return None
 
+ 
 def analyze_response(element, user_response, assistant_message):
     prompt = f"""
     Analyze the learner's response for the '{element}' element of the HURIER model.
@@ -153,7 +153,7 @@ def analyze_response(element, user_response, assistant_message):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": "You are an expert in active listening and the HURIER model."},
@@ -193,35 +193,63 @@ def main():
     industry = st.selectbox("Select an industry:", ["Technology", "Healthcare", "Finance", "Education", "Retail"])
 
     if st.button("Generate Scenario"):
-        # Create and clean up scenario
+        st.write("Generating scenario...")
         scenario = create_scenario(industry)
         if scenario:
+            st.write("Cleaning up scenario...")
             clean_scenario = clean_up_scenario(scenario)
             if clean_scenario:
                 st.session_state.clean_scenario = clean_scenario
-                st.subheader("Scenario:")
-                st.write(clean_scenario['context'])
-                st.write(f"You will be talking to: {clean_scenario['person']}")
+                st.session_state.conversation = None  # Reset conversation when new scenario is generated
+                st.write("Scenario generated successfully!")
+            else:
+                st.error("Failed to clean up the scenario.")
+        else:
+            st.error("Failed to create a scenario.")
 
     if 'clean_scenario' in st.session_state:
+        st.subheader("Scenario:")
+        st.write(st.session_state.clean_scenario['context'])
+        st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}")
+
         if 'conversation' not in st.session_state:
-            st.session_state.conversation = conversation_engine(st.session_state.clean_scenario['person'], st.session_state.clean_scenario['context'])
+            st.write("Initializing conversation...")
+            with st.spinner('Please wait while the conversation is being initialized...'):
+                try:
+                    st.session_state.conversation = conversation_engine(
+                        st.session_state.clean_scenario['person'], 
+                        st.session_state.clean_scenario['context']
+                    )
+                    if not st.session_state.conversation:
+                        st.error("Failed to initialize conversation.")
+                except Exception as e:
+                    st.error(f"An error occurred while initializing the conversation: {str(e)}")
 
         if st.session_state.conversation:
             st.subheader("Conversation:")
-            st.write(st.session_state.conversation['initial_message'])
+            st.write("Character:", st.session_state.conversation['initial_message'])
 
             user_response = st.text_input("Your response:")
 
             if st.button("Submit Response"):
-                assistant_response = continue_conversation(
-                    st.session_state.conversation['thread_id'],
-                    st.session_state.conversation['assistant_id'],
-                    user_response
-                )
-                if assistant_response:
-                    st.write("Assistant:", assistant_response)
-                    listening_skill_coach(assistant_response)
+                st.write("Processing your response...")
+                try:
+                    assistant_response = continue_conversation(
+                        st.session_state.conversation['thread_id'],
+                        st.session_state.conversation['assistant_id'],
+                        user_response
+                    )
+                    if assistant_response:
+                        st.write("Character:", assistant_response)
+                        listening_skill_coach(assistant_response)
+                    else:
+                        st.error("Failed to get a response from the character.")
+                except Exception as e:
+                    st.error(f"An error occurred during the conversation: {str(e)}")
+        else:
+            st.write("Waiting for conversation to initialize...")
+    else:
+        st.write("Please generate a scenario to start.")
 
 if __name__ == "__main__":
     main()
