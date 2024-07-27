@@ -4,7 +4,7 @@ import json
 import random
 
 # Initialize OpenAI client
-client = OpenAI()
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Constants
 HURIER_ELEMENTS = ["Hear", "Understand", "Remember", "Interpret", "Evaluate", "Respond"]
