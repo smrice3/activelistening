@@ -77,7 +77,9 @@ def clean_up_scenario(scenario):
         return None
 
 def conversation_engine(character, context):
+    st.write("Starting conversation engine...")
     try:
+        st.write("Creating assistant...")
         assistant = client.beta.assistants.create(
             name="Conversation Bot",
             instructions=f"""You are roleplaying as {character} in the following context: {context}. 
@@ -87,20 +89,29 @@ def conversation_engine(character, context):
             tools=[{"type": "code_interpreter"}],
             model="gpt-4o"
         )
+        st.write("Assistant created successfully.")
 
+        st.write("Creating thread...")
         thread = client.beta.threads.create()
+        st.write("Thread created successfully.")
 
+        st.write("Creating initial run...")
         run = client.beta.threads.runs.create(
             thread_id=thread.id,
             assistant_id=assistant.id,
             instructions="Provide an opening statement as the character to start the conversation."
         )
 
+        st.write("Waiting for run to complete...")
         while run.status != 'completed':
             run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+            st.write(f"Run status: {run.status}")
+            time.sleep(1)  # Add a small delay to avoid excessive API calls
 
+        st.write("Retrieving messages...")
         messages = client.beta.threads.messages.list(thread_id=thread.id)
         initial_message = messages.data[0].content[0].text.value
+        st.write("Initial message retrieved successfully.")
 
         return {
             "thread_id": thread.id,
@@ -111,7 +122,6 @@ def conversation_engine(character, context):
     except Exception as e:
         st.error(f"An error occurred in the conversation engine: {str(e)}")
         return None
-
 
 def continue_conversation(thread_id, assistant_id, user_message):
     try:
@@ -218,15 +228,16 @@ def main():
 
         if 'conversation' not in st.session_state:
             st.write("Initializing conversation...")
-            try:
-                st.session_state.conversation = conversation_engine(
-                    st.session_state.clean_scenario['person'], 
-                    st.session_state.clean_scenario['context']
-                )
-                if not st.session_state.conversation:
-                    st.error("Failed to initialize conversation.")
-            except Exception as e:
-                st.error(f"An error occurred while initializing the conversation: {str(e)}")
+            with st.spinner('Please wait while the conversation is being initialized...'):
+                try:
+                    st.session_state.conversation = conversation_engine(
+                        st.session_state.clean_scenario['person'], 
+                        st.session_state.clean_scenario['context']
+                    )
+                    if not st.session_state.conversation:
+                        st.error("Failed to initialize conversation.")
+                except Exception as e:
+                    st.error(f"An error occurred while initializing the conversation: {str(e)}")
 
         if st.session_state.conversation:
             st.subheader("Conversation:")
