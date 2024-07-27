@@ -125,32 +125,6 @@ def continue_conversation(messages, user_message):
         st.error(f"An error occurred while continuing the conversation: {str(e)}")
         return None, messages
 
-
-def continue_conversation(thread_id, assistant_id, user_message):
-    try:
-        client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=user_message
-        )
-
-        run = client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=assistant_id
-        )
-
-        while run.status != 'completed':
-            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
-
-        messages = client.beta.threads.messages.list(thread_id=thread_id)
-        assistant_response = messages.data[0].content[0].text.value
-
-        return assistant_response
-
-    except Exception as e:
-        st.error(f"An error occurred while continuing the conversation: {str(e)}")
-        return None
-
 def analyze_response(element, user_response, assistant_message):
     prompt = f"""
     Analyze the learner's response for the '{element}' element of the HURIER model.
