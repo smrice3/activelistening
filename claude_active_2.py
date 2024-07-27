@@ -1,9 +1,9 @@
 import streamlit as st
 from openai import OpenAI
 import json
-import random
+import time
 
-# Initialize OpenAI client
+# Initialize OpenAI client with API key from Streamlit secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # Constants
@@ -26,7 +26,7 @@ def create_scenario(industry):
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4",
             temperature=0.8,
             response_format={"type": "json_object"},
             messages=[
@@ -61,7 +61,7 @@ def clean_up_scenario(scenario):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4",
             temperature=0.7,
             response_format={"type": "json_object"},
             messages=[
@@ -85,7 +85,7 @@ def conversation_engine(character, context):
         Do not introduce yourself or ask how you can assist. Instead, speak as if you're already in the middle of a workplace interaction."""
 
         response = client.chat.completions.create(
-            model="gpt-4",  # or "gpt-3.5-turbo" if gpt-4 is not available
+            model="gpt-4",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": "Start the conversation."}
@@ -112,7 +112,7 @@ def continue_conversation(messages, user_message):
         messages.append({"role": "user", "content": user_message})
         
         response = client.chat.completions.create(
-            model="gpt-4",  # or "gpt-3.5-turbo" if gpt-4 is not available
+            model="gpt-4",
             messages=messages
         )
 
@@ -144,7 +144,7 @@ def analyze_response(element, user_response, assistant_message):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": "You are an expert in active listening and the HURIER model."},
