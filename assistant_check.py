@@ -29,7 +29,7 @@ def create_scenario(industry):
             model="gpt-4o-mini",
             response_format={ "type": "json_object" },
             messages=[
-                {"role": "system", "content": "You are a creative assistant designed to generate unique and engaging scenarios. Output your response as JSON."},
+                {"role": "system", "content": "You are an assistant designed to generate scenarios that allow for white collar workers to improve their communication skills. You create professionally relevant scenarios. Output your response as JSON."},
                 {"role": "user", "content": prompt}
             ]
         )
@@ -79,7 +79,7 @@ def conversation_engine(character, context):
     try:
         assistant = client.beta.assistants.create(
             name="Conversation Bot",
-            instructions=f"You are a conversational agent designed to help a person work on their listening skills. You will be playing the role of {character}, in the following context: {context}. Generate an initial statement to start the conversation, and then respond conversationally to the input from the learner. Feel free to add appropriate emotion and tone based on the responses.",
+            instructions=f"You are a conversational agent designed to help a person work on their listening skills. You will be playing the role of {character}, in the following context: {context}. Generatee an opening piecce of dialogue. Feel free to add appropriate emotion and tone based on the responses.",
             tools=[{"type": "code_interpreter"}],
             model="gpt-4o"
         )
