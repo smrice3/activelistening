@@ -203,16 +203,14 @@ def main():
             clean_scenario = clean_up_scenario(scenario)
             if clean_scenario:
                 st.session_state.clean_scenario = clean_scenario
-                st.subheader("Scenario:")
-                st.write(clean_scenario['context'])
-                st.write(f"You will be talking to: {clean_scenario['person']}")
+                st.session_state.conversation = None  # Reset conversation when new scenario is generated
 
-     if 'clean_scenario' in st.session_state:
+    if 'clean_scenario' in st.session_state:
+        st.subheader("Scenario:")
+        st.write(st.session_state.clean_scenario['context'])
+        st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}")
+
         if 'conversation' not in st.session_state:
-            st.subheader("Scenario:")
-            st.write(st.session_state.clean_scenario['context'])
-            st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}")
-            
             st.session_state.conversation = conversation_engine(
                 st.session_state.clean_scenario['person'], 
                 st.session_state.clean_scenario['context']
@@ -231,7 +229,7 @@ def main():
                     user_response
                 )
                 if assistant_response:
-                    st.write("Assistant:", assistant_response)
+                    st.write("Character:", assistant_response)
                     listening_skill_coach(assistant_response)
 
 if __name__ == "__main__":
