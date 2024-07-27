@@ -79,49 +79,52 @@ def clean_up_scenario(scenario):
 def conversation_engine(character, context):
     st.write("Starting conversation engine...")
     try:
-        st.write("Creating assistant...")
-        assistant = client.beta.assistants.create(
-            name="Conversation Bot",
-            instructions=f"""You are roleplaying as {character} in the following context: {context}. 
-            Generate an opening statement to start the conversation as this character would.
-            This statement should relate to the scenario and invite a response from the other person.
-            Do not introduce yourself or ask how you can assist. Instead, speak as if you're already in the middle of a workplace interaction.""",
-            tools=[{"type": "code_interpreter"}],
-            model="gpt-4o-mini"
-        )
-        st.write("Assistant created successfully.")
+        prompt = f"""You are roleplaying as {character} in the following context: {context}. 
+        Generate an opening statement to start the conversation as this character would.
+        This statement should relate to the scenario and invite a response from the other person.
+        Do not introduce yourself or ask how you can assist. Instead, speak as if you're already in the middle of a workplace interaction."""
 
-        st.write("Creating thread...")
-        thread = client.beta.threads.create()
-        st.write("Thread created successfully.")
-
-        st.write("Creating initial run...")
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant.id,
-            instructions="Provide an opening statement as the character to start the conversation."
+        response = client.chat.completions.create(
+            model="gpt-4",  # or "gpt-3.5-turbo" if gpt-4 is not available
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": "Start the conversation."}
+            ]
         )
 
-        st.write("Waiting for run to complete...")
-        while run.status != 'completed':
-            run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
-            st.write(f"Run status: {run.status}")
-            time.sleep(1)  # Add a small delay to avoid excessive API calls
-
-        st.write("Retrieving messages...")
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-        initial_message = messages.data[0].content[0].text.value
-        st.write("Initial message retrieved successfully.")
+        initial_message = response.choices[0].message.content
+        st.write("Initial message generated successfully.")
 
         return {
-            "thread_id": thread.id,
-            "assistant_id": assistant.id,
+            "messages": [
+                {"role": "system", "content": prompt},
+                {"role": "assistant", "content": initial_message}
+            ],
             "initial_message": initial_message
         }
 
     except Exception as e:
         st.error(f"An error occurred in the conversation engine: {str(e)}")
         return None
+
+def continue_conversation(messages, user_message):
+    try:
+        messages.append({"role": "user", "content": user_message})
+        
+        response = client.chat.completions.create(
+            model="gpt-4",  # or "gpt-3.5-turbo" if gpt-4 is not available
+            messages=messages
+        )
+
+        assistant_response = response.choices[0].message.content
+        messages.append({"role": "assistant", "content": assistant_response})
+
+        return assistant_response, messages
+
+    except Exception as e:
+        st.error(f"An error occurred while continuing the conversation: {str(e)}")
+        return None, messages
+
 
 def continue_conversation(thread_id, assistant_id, user_message):
     try:
@@ -248,9 +251,8 @@ def main():
             if st.button("Submit Response"):
                 st.write("Processing your response...")
                 try:
-                    assistant_response = continue_conversation(
-                        st.session_state.conversation['thread_id'],
-                        st.session_state.conversation['assistant_id'],
+                    assistant_response, st.session_state.conversation['messages'] = continue_conversation(
+                        st.session_state.conversation['messages'],
                         user_response
                     )
                     if assistant_response:
