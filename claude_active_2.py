@@ -1,7 +1,6 @@
 import streamlit as st
 from openai import OpenAI
 import json
-import time
 
 # Initialize OpenAI client with API key from Streamlit secrets
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
@@ -34,7 +33,7 @@ def create_scenario(industry):
             ]
         )
         
-        scenario = json.loads(response.choices[0].message.content)
+        scenario = json.loads(response.choices[0].message["content"])
         return scenario
     except Exception as e:
         st.error(f"An error occurred while creating the scenario: {str(e)}")
@@ -65,14 +64,14 @@ def clean_up_scenario(scenario):
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             temperature=0.7,
-            response_format={"type": "json_object"},
+            response_format={ "type": "json_object" },
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that creates engaging scenario descriptions."},
+                {"role": "system", "content": "You are a helpful assistant that creates engaging scenario descriptions. Output your response as JSON."},
                 {"role": "user", "content": prompt}
             ]
         )
 
-        clean_scenario = json.loads(response.choices[0].message.content)
+        clean_scenario = json.loads(response.choices[0].message["content"])
         return clean_scenario
     except Exception as e:
         st.error(f"An error occurred while cleaning up the scenario: {str(e)}")
@@ -90,20 +89,24 @@ def conversation_engine(character, context):
         thread = client.beta.threads.create()
 
         run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant.id,
+            thread_id=thread["id"],
+            assistant_id=assistant["id"],
             instructions="Please provide an opening statement to start the conversation."
         )
 
-        while run.status != 'completed':
-            run = client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+        while run["status"] != "completed":
+            run = client.beta.threads.runs.retrieve(thread_id=thread["id"], run_id=run["id"])
 
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-        initial_message = messages.data[0].content[0].text.value
+        if run["finish_reason"] == "length":
+            st.warning("The response was cut off due to length. Please try again with a shorter input.")
+            return None
+
+        messages = client.beta.threads.messages.list(thread_id=thread["id"])
+        initial_message = messages["data"][0]["content"][0]["text"]["value"]
 
         return {
-            "thread_id": thread.id,
-            "assistant_id": assistant.id,
+            "thread_id": thread["id"],
+            "assistant_id": assistant["id"],
             "initial_message": initial_message
         }
 
@@ -124,11 +127,15 @@ def continue_conversation(thread_id, assistant_id, user_message):
             assistant_id=assistant_id
         )
 
-        while run.status != 'completed':
-            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+        while run["status"] != "completed":
+            run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run["id"])
+
+        if run["finish_reason"] == "length":
+            st.warning("The response was cut off due to length. Please try again with a shorter input.")
+            return None
 
         messages = client.beta.threads.messages.list(thread_id=thread_id)
-        assistant_response = messages.data[0].content[0].text.value
+        assistant_response = messages["data"][0]["content"][0]["text"]["value"]
 
         return assistant_response
 
@@ -136,7 +143,6 @@ def continue_conversation(thread_id, assistant_id, user_message):
         st.error(f"An error occurred while continuing the conversation: {str(e)}")
         return None
 
- 
 def analyze_response(element, user_response, assistant_message):
     prompt = f"""
     Analyze the learner's response for the '{element}' element of the HURIER model.
@@ -157,14 +163,14 @@ def analyze_response(element, user_response, assistant_message):
     try:
         response = client.chat.completions.create(
             model="gpt-4",
-            response_format={"type": "json_object"},
+            response_format={ "type": "json_object" },
             messages=[
-                {"role": "system", "content": "You are an expert in active listening and the HURIER model."},
+                {"role": "system", "content": "You are an expert in active listening and the HURIER model. Output your response as JSON."},
                 {"role": "user", "content": prompt}
             ]
         )
         
-        feedback = json.loads(response.choices[0].message.content)
+        feedback = json.loads(response.choices[0].message["content"])
         return feedback
     except Exception as e:
         st.error(f"An error occurred while analyzing the response: {str(e)}")
@@ -182,9 +188,9 @@ def listening_skill_coach(assistant_message):
         
         if st.button(f"Submit {element}", key=f"submit_{element}"):
             feedback = analyze_response(element, user_response, assistant_message)
-            st.write(feedback['Feedback'])
+            st.write(feedback["Feedback"])
             
-            if feedback['Evaluation'] == 'failed':
+            if feedback["Evaluation"] == "failed":
                 st.write("Let's try again. Please provide a more detailed answer.")
             else:
                 st.write("Great job! Let's move on to the next element.")
@@ -210,17 +216,17 @@ def main():
         else:
             st.error("Failed to create a scenario.")
 
-    if 'clean_scenario' in st.session_state:
+    if "clean_scenario" in st.session_state:
         # Extract scenario details into specific variables
-        context = st.session_state.clean_scenario['context']
-        person_name = st.session_state.clean_scenario['person']
-        person_role = st.session_state.clean_scenario['role']
+        context = st.session_state.clean_scenario["context"]
+        person_name = st.session_state.clean_scenario["person"]
+        person_role = st.session_state.clean_scenario["role"]
 
         st.subheader("Scenario:")
         st.write(context)
         st.write(f"You will be talking to: {person_name}, who is the {person_role}")
 
-        if 'conversation' not in st.session_state:
+        if "conversation" not in st.session_state:
             st.write("Initializing conversation...")
             with st.spinner('Please wait while the conversation is being initialized...'):
                 try:
@@ -235,7 +241,7 @@ def main():
 
         if st.session_state.conversation:
             st.subheader("Conversation:")
-            st.write("Character:", st.session_state.conversation['initial_message'])
+            st.write("Character:", st.session_state.conversation["initial_message"])
 
             user_response = st.text_input("Your response:")
 
@@ -243,8 +249,8 @@ def main():
                 st.write("Processing your response...")
                 try:
                     assistant_response = continue_conversation(
-                        st.session_state.conversation['thread_id'],
-                        st.session_state.conversation['assistant_id'],
+                        st.session_state.conversation["thread_id"],
+                        st.session_state.conversation["assistant_id"],
                         user_response
                     )
                     if assistant_response:
@@ -258,6 +264,3 @@ def main():
             st.write("Waiting for conversation to initialize...")
     else:
         st.write("Please generate a scenario to start.")
-
-if __name__ == "__main__":
-    main()
