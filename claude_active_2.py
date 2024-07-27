@@ -74,6 +74,7 @@ def clean_up_scenario(scenario):
     except Exception as e:
         st.error(f"An error occurred while cleaning up the scenario: {str(e)}")
         return None
+    
 def conversation_engine(character, context):
     st.write("Starting conversation engine...")
     try:
@@ -84,7 +85,7 @@ def conversation_engine(character, context):
             Generate an initial statement to start the conversation, and then respond conversationally to the input from the learner. 
             Feel free to add appropriate emotion and tone based on the responses.""",
             tools=[{"type": "code_interpreter"}],
-            model="gpt-4"  # Using gpt-4 as gpt-4o might not be available
+            model="gpt-4o-mini"  # Using gpt-4 as gpt-4o might not be available
         )
         st.write("Assistant created successfully.")
 
@@ -141,6 +142,7 @@ def continue_conversation(thread_id, assistant_id, user_message):
     except Exception as e:
         st.error(f"An error occurred while continuing the conversation: {str(e)}")
         return None
+    
 def analyze_response(element, user_response, assistant_message):
     prompt = f"""
     Analyze the learner's response for the '{element}' element of the HURIER model.
