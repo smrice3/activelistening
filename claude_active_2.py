@@ -219,8 +219,7 @@ def main():
     if 'clean_scenario' in st.session_state:
         st.subheader("Scenario:")
         st.write(st.session_state.clean_scenario['context'])
-        st.write(f"You will be talking to: {
-                 st.session_state.clean_scenario['person']}")
+        st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}")
 
         if 'conversation' not in st.session_state:
             st.write("Initializing conversation...")
