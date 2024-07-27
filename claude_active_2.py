@@ -207,13 +207,20 @@ def main():
                 st.write(clean_scenario['context'])
                 st.write(f"You will be talking to: {clean_scenario['person']}")
 
-    if 'clean_scenario' in st.session_state:
+     if 'clean_scenario' in st.session_state:
         if 'conversation' not in st.session_state:
-            st.session_state.conversation = conversation_engine(st.session_state.clean_scenario['person'], st.session_state.clean_scenario['context'])
+            st.subheader("Scenario:")
+            st.write(st.session_state.clean_scenario['context'])
+            st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}")
+            
+            st.session_state.conversation = conversation_engine(
+                st.session_state.clean_scenario['person'], 
+                st.session_state.clean_scenario['context']
+            )
 
         if st.session_state.conversation:
             st.subheader("Conversation:")
-            st.write(st.session_state.conversation['initial_message'])
+            st.write("Character:", st.session_state.conversation['initial_message'])
 
             user_response = st.text_input("Your response:")
 
