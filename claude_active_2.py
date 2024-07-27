@@ -80,7 +80,10 @@ def conversation_engine(character, context):
     try:
         assistant = client.beta.assistants.create(
             name="Conversation Bot",
-            instructions=f"You are a conversational agent designed to help a person work on their listening skills. You will be playing the role of {character}, in the following context: {context}. Generate an initial statement to start the conversation, and then respond conversationally to the input from the learner. Feel free to add appropriate emotion and tone based on the responses.",
+            instructions=f"""You are roleplaying as {character} in the following context: {context}. 
+            Generate an opening statement to start the conversation as this character would.
+            This statement should relate to the scenario and invite a response from the other person.
+            Do not introduce yourself or ask how you can assist. Instead, speak as if you're already in the middle of a workplace interaction.""",
             tools=[{"type": "code_interpreter"}],
             model="gpt-4o"
         )
@@ -90,7 +93,7 @@ def conversation_engine(character, context):
         run = client.beta.threads.runs.create(
             thread_id=thread.id,
             assistant_id=assistant.id,
-            instructions="Please provide an opening statement to start the conversation."
+            instructions="Provide an opening statement as the character to start the conversation."
         )
 
         while run.status != 'completed':
@@ -108,6 +111,7 @@ def conversation_engine(character, context):
     except Exception as e:
         st.error(f"An error occurred in the conversation engine: {str(e)}")
         return None
+
 
 def continue_conversation(thread_id, assistant_id, user_message):
     try:
