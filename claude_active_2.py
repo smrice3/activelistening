@@ -211,17 +211,22 @@ def main():
             st.error("Failed to create a scenario.")
 
     if 'clean_scenario' in st.session_state:
+        # Extract scenario details into specific variables
+        context = st.session_state.clean_scenario['context']
+        person_name = st.session_state.clean_scenario['person']
+        person_role = st.session_state.clean_scenario['role']
+
         st.subheader("Scenario:")
-        st.write(st.session_state.clean_scenario['context'])
-        st.write(f"You will be talking to: {st.session_state.clean_scenario['person']}, who is the {st.session_state.clean_scenario['role']}")
+        st.write(context)
+        st.write(f"You will be talking to: {person_name}, who is the {person_role}")
 
         if 'conversation' not in st.session_state:
             st.write("Initializing conversation...")
             with st.spinner('Please wait while the conversation is being initialized...'):
                 try:
                     st.session_state.conversation = conversation_engine(
-                        f"{st.session_state.clean_scenario['person']}, the {st.session_state.clean_scenario['role']}", 
-                        st.session_state.clean_scenario['context']
+                        f"{person_name}, the {person_role}", 
+                        context
                     )
                     if not st.session_state.conversation:
                         st.error("Failed to initialize conversation.")
