@@ -19,9 +19,9 @@ HURIER_QUESTIONS = {
 
 def create_scenario(industry):
     prompt = f"""Create a unique and detailed workplace scenario in the {industry} industry. Be creative and include unexpected elements. Include:
-    1. The name and function of the company (make this inventive and memorable)
-    2. The name and role of the person the user will be talking to (give them an interesting backstory)
-    3. The reason for the discussion (make this compelling and slightly unusual)
+    1. The name and function of the company (make this realistic)
+    2. The name and role of the person the user will be talking to (make this realistic)
+    3. The reason for the discussion (make this realistic)
     Format the response as a JSON object with the following keys: company_name, company_function, person_name, person_role, discussion_reason"""
     
     try:
